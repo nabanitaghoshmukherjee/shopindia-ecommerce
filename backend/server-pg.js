@@ -6,12 +6,16 @@ const Razorpay = require('razorpay');
 const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
+const fs = require('fs');
 const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const HOST = process.env.HOST || '0.0.0.0';
 const JWT_SECRET = process.env.JWT_SECRET || 'shopindia_secret_key_2024';
+
+const DIST_PATH = process.env.DIST_PATH || path.join(__dirname, '..', 'frontend', 'dist');
 
 app.use(cors({
   origin: '*',
@@ -19,7 +23,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+if (fs.existsSync(DIST_PATH)) {
+  app.use(express.static(DIST_PATH));
+} else {
+  console.log('Warning: Frontend dist not found at', DIST_PATH);
+}
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -659,10 +668,13 @@ app.get('/api/config', (req, res) => {
 });
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  const indexPath = path.join(DIST_PATH, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend not built. Run npm run build in frontend folder.');
+  }
 });
-
-const HOST = process.env.HOST || '0.0.0.0';
 
 pool.query('SELECT NOW()').then(() => {
   console.log('Database connected successfully');
