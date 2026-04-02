@@ -21,11 +21,13 @@ DB_PASSWORD="Match#2025"
 PORT=5001
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DIST_PATH="$SCRIPT_DIR/frontend/dist"
 
 echo "[1/4] Setting up backend..."
 cd "$SCRIPT_DIR/backend"
 
 cat > .env << EOF
+HOST=0.0.0.0
 PORT=${PORT}
 NODE_ENV=production
 DB_HOST=${DB_HOST}
@@ -33,6 +35,7 @@ DB_PORT=${DB_PORT}
 DB_NAME=${DB_NAME}
 DB_USER=${DB_USER}
 DB_PASSWORD=${DB_PASSWORD}
+DIST_PATH=${DIST_PATH}
 JWT_SECRET=shopindia_production_secret_key_2024
 RAZORPAY_KEY_ID=rzp_test_XXXXXXXXXX
 RAZORPAY_KEY_SECRET=XXXXXXXXXXXXXXXX
