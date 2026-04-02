@@ -17,7 +17,7 @@ DB_HOST="31.97.206.7"
 DB_PORT="5432"
 DB_NAME="shopindia"
 DB_USER="postgres"
-DB_PASSWORD="Match#2025"
+DB_PASSWORD="FGrt4Vfe3234"
 PORT=5001
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
