@@ -13,8 +13,13 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const JWT_SECRET = process.env.JWT_SECRET || 'shopindia_secret_key_2024';
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -651,6 +656,10 @@ app.post('/api/payments/verify', (req, res) => {
 
 app.get('/api/config', (req, res) => {
   res.json({ keyId: RAZORPAY_KEY_ID });
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
 pool.query('SELECT NOW()').then(() => {
