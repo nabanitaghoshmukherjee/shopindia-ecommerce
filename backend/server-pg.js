@@ -662,15 +662,17 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
+const HOST = process.env.HOST || '0.0.0.0';
+
 pool.query('SELECT NOW()').then(() => {
   console.log('Database connected successfully');
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
   });
 }).catch(err => {
   console.error('Database connection failed:', err);
   console.log('Server starting without database connection...');
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT} (NO DATABASE)`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT} (NO DATABASE)`);
   });
 });
