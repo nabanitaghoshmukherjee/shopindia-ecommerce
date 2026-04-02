@@ -80,4 +80,4 @@ This project is available for commercial use. See LICENSING.md for details.
 
 ## Author
 
-Nabanita Ghosh Mukherjee
+Nabanita Ghosh Mukherjee (nabanitaghoshmukherjee@gmail.com)
