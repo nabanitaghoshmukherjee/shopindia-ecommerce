@@ -29,7 +29,8 @@ echo "✅ Dependencies OK"
 
 echo ""
 echo "[2/7] Setting up backend..."
-cd /root/shopindia-ecommerce/backend
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/backend"
 
 cat > .env << EOF
 PORT=${PORT}
@@ -56,7 +57,7 @@ echo "✅ Backend running"
 
 echo ""
 echo "[4/7] Building frontend..."
-cd /root/shopindia-ecommerce/frontend
+cd "$SCRIPT_DIR/frontend"
 npm install --silent
 npm run build --silent
 echo "✅ Frontend built"
