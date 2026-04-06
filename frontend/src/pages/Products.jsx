@@ -66,10 +66,10 @@ const Products = () => {
       ) : (
         <div className="product-grid">
           {products.map(product => {
-            const disc = product.originalPrice > product.price
-              ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0
-            const rating = product.rating || 4
-            const reviews = product.reviews || 0
+            const disc = product.original_price > product.price
+              ? Math.round(((product.original_price - product.price) / product.original_price) * 100) : 0
+            const rating = parseFloat(product.rating) || 4
+            const reviews = parseInt(product.reviews) || 0
             return (
               <div key={product.id} className="product-grid-card">
                 <Link to={`/product/${product.id}`}>
@@ -84,7 +84,7 @@ const Products = () => {
                       <span className="price"><sup>&#8377;</sup>{product.price?.toLocaleString()}</span>
                       {disc > 0 && (
                         <>
-                          <span className="original">&#8377;{product.originalPrice?.toLocaleString()}</span>
+                          <span className="original">&#8377;{product.original_price?.toLocaleString()}</span>
                           <span className="discount">({disc}%)</span>
                         </>
                       )}

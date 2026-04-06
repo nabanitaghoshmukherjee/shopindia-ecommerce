@@ -33,11 +33,11 @@ const ProductDetail = () => {
   if (!product) return <div style={{padding:'60px',textAlign:'center'}}>Product not found</div>
 
   const displayPrice = selectedVariant ? selectedVariant.price : product.price
-  const disc = product.originalPrice > displayPrice
-    ? Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100) : 0
-  const inStock = product.inStock && (!selectedVariant || (selectedVariant.stock > 0))
-  const rating = product.rating || 4
-  const reviews = product.reviews || 0
+  const disc = product.original_price > displayPrice
+    ? Math.round(((product.original_price - displayPrice) / product.original_price) * 100) : 0
+  const inStock = product.in_stock && (!selectedVariant || (selectedVariant.stock > 0))
+  const rating = parseFloat(product.rating) || 4
+  const reviews = parseInt(product.reviews) || 0
 
   const allImages = [
     product.image,
@@ -71,7 +71,7 @@ const ProductDetail = () => {
             <span className="price-main"><sup>&#8377;</sup>{displayPrice?.toLocaleString()}</span>
             {disc > 0 && (
               <>
-                <span className="price-original">&#8377;{product.originalPrice?.toLocaleString()}</span>
+                <span className="price-original">&#8377;{product.original_price?.toLocaleString()}</span>
                 <span className="price-discount">-{disc}%</span>
               </>
             )}

@@ -60,7 +60,7 @@ const Home = () => {
 
   if (loading) return <div style={{padding:'60px',textAlign:'center'}}>Loading...</div>
 
-  const deals = products.filter(p => p.originalPrice > p.price).slice(0, 10)
+  const deals = products.filter(p => p.original_price > p.price).slice(0, 10)
 
   return (
     <div>
@@ -100,7 +100,7 @@ const Home = () => {
           </div>
           <div className="deals-scroll">
             {deals.map(p => {
-              const disc = Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+              const disc = Math.round(((p.original_price - p.price) / p.original_price) * 100)
               return (
                 <Link key={p.id} to={`/product/${p.id}`} className="deal-card">
                   <img className="deal-card-img" src={p.image} alt={p.name} />
@@ -108,7 +108,7 @@ const Home = () => {
                     <span className="deal-card-discount">{disc}% off</span>
                     <div className="deal-card-title">{p.name}</div>
                     <div className="deal-card-price"><sup>&#8377;</sup>{p.price?.toLocaleString()}</div>
-                    <div className="deal-card-original">M.R.P.: &#8377;{p.originalPrice?.toLocaleString()}</div>
+                    <div className="deal-card-original">M.R.P.: &#8377;{p.original_price?.toLocaleString()}</div>
                   </div>
                 </Link>
               )
@@ -145,10 +145,10 @@ const Home = () => {
 }
 
 const ProductCard = ({ product, addToCart }) => {
-  const disc = product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0
-  const rating = product.rating || 4
-  const reviews = product.reviews || 0
+  const disc = product.original_price > product.price
+    ? Math.round(((product.original_price - product.price) / product.original_price) * 100) : 0
+  const rating = parseFloat(product.rating) || 4
+  const reviews = parseInt(product.reviews) || 0
 
   return (
     <div className="product-grid-card">
@@ -164,7 +164,7 @@ const ProductCard = ({ product, addToCart }) => {
             <span className="price"><sup>&#8377;</sup>{product.price?.toLocaleString()}</span>
             {disc > 0 && (
               <>
-                <span className="original">&#8377;{product.originalPrice?.toLocaleString()}</span>
+                <span className="original">&#8377;{product.original_price?.toLocaleString()}</span>
                 <span className="discount">({disc}%)</span>
               </>
             )}
