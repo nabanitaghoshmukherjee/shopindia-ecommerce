@@ -1,22 +1,27 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
 
 const Cart = () => {
-  const { items, cartTotal, updateQuantity, removeFromCart } = useCart()
+  const { items, cartTotal, updateQuantity, removeFromCart, isGuest } = useCart()
   const { token } = useAuth()
   const navigate = useNavigate()
+  const [products, setProducts] = useState({})
 
-  if (!token) return (
-    <div className="cart-page">
-      <h1>Shopping Cart</h1>
-      <div className="empty-state">
-        <h2>Please sign in</h2>
-        <p>Sign in to see your saved items</p>
-        <Link to="/login" className="btn btn-primary">Sign in</Link>
-      </div>
-    </div>
-  )
+  useEffect(() => {
+    if (isGuest && items.length > 0) {
+      const productIds = [...new Set(items.map(i => i.productId))]
+      Promise.all(productIds.map(id => axios.get(`/api/products/${id}`).then(r => ({ id, data: r.data }))))
+        .then(results => {
+          const map = {}
+          results.forEach(r => { map[r.id] = r.data })
+          setProducts(map)
+        })
+        .catch(console.error)
+    }
+  }, [items, isGuest])
 
   if (items.length === 0) return (
     <div className="cart-page">
@@ -24,6 +29,43 @@ const Cart = () => {
       <div className="empty-state">
         <h2>Your cart is empty</h2>
         <Link to="/" className="btn btn-primary">Continue Shopping</Link>
+      </div>
+    </div>
+  )
+
+  if (!token) return (
+    <div className="cart-page">
+      <h1>Shopping Cart ({items.reduce((s, i) => s + (i.quantity || 1), 0)} items)</h1>
+      {items.map(item => {
+        const product = products[item.productId] || {}
+        const price = product.price || 0
+        return (
+          <div key={item.tempId || `${item.productId}-${item.variantId}`} className="cart-item-mobile">
+            <Link to={`/product/${item.productId}`}>
+              <img src={product.image} alt={product.name} />
+            </Link>
+            <div className="cart-item-info">
+              <Link to={`/product/${item.productId}`}><h3>{product.name || 'Loading...'}</h3></Link>
+              <div className="stock">In Stock</div>
+              <div className="price">&#8377;{(price * (item.quantity || 1)).toLocaleString()}</div>
+              <div className="cart-item-qty">
+                <button onClick={() => {
+                  if ((item.quantity || 1) === 1) removeFromCart(item.productId, item.variantId)
+                  else updateQuantity(item.productId, (item.quantity || 1) - 1, item.variantId)
+                }}>-</button>
+                <span>Qty: {item.quantity || 1}</span>
+                <button onClick={() => updateQuantity(item.productId, (item.quantity || 1) + 1, item.variantId)}>+</button>
+              </div>
+              <div className="cart-item-actions">
+                <button onClick={() => removeFromCart(item.productId, item.variantId)}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+      <div className="cart-summary-mobile">
+        <div className="subtotal">Subtotal ({items.reduce((s, i) => s + (i.quantity || 1), 0)} items): &#8377;{cartTotal.toLocaleString()}</div>
+        <button className="btn-proceed" onClick={() => navigate('/login')}>Sign in to Checkout</button>
       </div>
     </div>
   )

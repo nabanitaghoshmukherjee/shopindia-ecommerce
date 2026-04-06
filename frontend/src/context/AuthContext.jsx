@@ -30,22 +30,24 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const login = async (email, password) => {
+  const login = async (email, password, mergeCart) => {
     const res = await axios.post('/api/auth/login', { email, password })
     const { token, user } = res.data
     localStorage.setItem('token', token)
     setToken(token)
     setUser(user)
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    if (mergeCart) mergeCart()
   }
 
-  const register = async (name, email, password, phone) => {
+  const register = async (name, email, password, phone, mergeCart) => {
     const res = await axios.post('/api/auth/register', { name, email, password, phone })
     const { token, user } = res.data
     localStorage.setItem('token', token)
     setToken(token)
     setUser(user)
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    if (mergeCart) mergeCart()
   }
 
   const logout = () => {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -8,13 +9,17 @@ const Login = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
+  const { mergeGuestCart, isGuest } = useCart()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    try { await login(email, password); navigate('/') }
+    try { 
+      await login(email, password, isGuest ? mergeGuestCart : null); 
+      navigate('/') 
+    }
     catch (err) { setError(err.response?.data?.error || 'Login failed') }
     finally { setLoading(false) }
   }

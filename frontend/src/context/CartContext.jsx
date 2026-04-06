@@ -3,21 +3,42 @@ import axios from 'axios'
 import { useAuth } from './AuthContext'
 
 const CartContext = createContext()
+const LOCAL_CART_KEY = 'shopindia_guest_cart'
 
 export const useCart = () => useContext(CartContext)
 
 export const CartProvider = ({ children }) => {
   const [items, setItems] = useState([])
   const [toast, setToast] = useState(null)
-  const { token } = useAuth()
+  const { token, user } = useAuth()
+  const [isGuest, setIsGuest] = useState(false)
 
   useEffect(() => {
     if (token) {
+      setIsGuest(false)
       fetchCart()
+    } else {
+      setIsGuest(true)
+      loadLocalCart()
+    }
+  }, [token])
+
+  const loadLocalCart = () => {
+    const saved = localStorage.getItem(LOCAL_CART_KEY)
+    if (saved) {
+      try {
+        setItems(JSON.parse(saved))
+      } catch {
+        setItems([])
+      }
     } else {
       setItems([])
     }
-  }, [token])
+  }
+
+  const saveLocalCart = (cartItems) => {
+    localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(cartItems))
+  }
 
   const fetchCart = async () => {
     try {
@@ -29,15 +50,29 @@ export const CartProvider = ({ children }) => {
   }
 
   const addToCart = async (productId, quantity = 1, variantId = null) => {
-    if (!token) {
-      showToast('Please login to add items to cart')
-      return
-    }
     try {
-      console.log('Adding to cart:', { productId, quantity, variantId })
-      await axios.post('/api/cart/add', { productId, quantity, variantId })
-      await fetchCart()
-      showToast('Added to cart!')
+      if (isGuest) {
+        const newItem = { productId, quantity, variantId, tempId: Date.now() }
+        setItems(prev => {
+          const existing = prev.find(i => i.productId === productId && i.variantId === variantId)
+          let updated
+          if (existing) {
+            updated = prev.map(i => i.productId === productId && i.variantId === variantId
+              ? { ...i, quantity: i.quantity + quantity }
+              : i
+            )
+          } else {
+            updated = [...prev, newItem]
+          }
+          saveLocalCart(updated)
+          return updated
+        })
+        showToast('Added to cart!')
+      } else {
+        await axios.post('/api/cart/add', { productId, quantity, variantId })
+        await fetchCart()
+        showToast('Added to cart!')
+      }
     } catch (err) {
       console.error('Add to cart error:', err)
       showToast('Failed to add to cart')
@@ -46,8 +81,19 @@ export const CartProvider = ({ children }) => {
 
   const updateQuantity = async (productId, quantity, variantId = null) => {
     try {
-      await axios.put('/api/cart/update', { productId, quantity, variantId })
-      await fetchCart()
+      if (isGuest) {
+        setItems(prev => {
+          const updated = prev.map(i => i.productId === productId && i.variantId === variantId
+            ? { ...i, quantity }
+            : i
+          ).filter(i => i.quantity > 0)
+          saveLocalCart(updated)
+          return updated
+        })
+      } else {
+        await axios.put('/api/cart/update', { productId, quantity, variantId })
+        await fetchCart()
+      }
     } catch (err) {
       console.error(err)
     }
@@ -55,13 +101,44 @@ export const CartProvider = ({ children }) => {
 
   const removeFromCart = async (productId, variantId = null) => {
     try {
-      const endpoint = variantId ? `/api/cart/remove/${productId}/${variantId}` : `/api/cart/remove/${productId}`
-      await axios.delete(endpoint)
-      await fetchCart()
-      showToast('Removed from cart')
+      if (isGuest) {
+        setItems(prev => {
+          const updated = prev.filter(i => !(i.productId === productId && i.variantId === variantId))
+          saveLocalCart(updated)
+          return updated
+        })
+        showToast('Removed from cart')
+      } else {
+        const endpoint = variantId ? `/api/cart/remove/${productId}/${variantId}` : `/api/cart/remove/${productId}`
+        await axios.delete(endpoint)
+        await fetchCart()
+        showToast('Removed from cart')
+      }
     } catch (err) {
       console.error(err)
     }
+  }
+
+  const clearGuestCart = () => {
+    localStorage.removeItem(LOCAL_CART_KEY)
+    setItems([])
+  }
+
+  const mergeGuestCart = async () => {
+    const guestCart = JSON.parse(localStorage.getItem(LOCAL_CART_KEY) || '[]')
+    for (const item of guestCart) {
+      try {
+        await axios.post('/api/cart/add', {
+          productId: item.productId,
+          quantity: item.quantity,
+          variantId: item.variantId
+        })
+      } catch (err) {
+        console.error('Failed to merge item:', err)
+      }
+    }
+    clearGuestCart()
+    await fetchCart()
   }
 
   const showToast = (message) => {
@@ -76,7 +153,7 @@ export const CartProvider = ({ children }) => {
   const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0)
 
   return (
-    <CartContext.Provider value={{ items, cartTotal, cartCount, addToCart, updateQuantity, removeFromCart, showToast }}>
+    <CartContext.Provider value={{ items, cartTotal, cartCount, addToCart, updateQuantity, removeFromCart, showToast, mergeGuestCart, clearGuestCart, isGuest }}>
       {children}
       {toast && <div className="toast">{toast}</div>}
     </CartContext.Provider>
