@@ -29,36 +29,38 @@ const Cart = () => {
   )
 
   const subtotal = items.reduce((sum, item) => {
-    const price = item.variant?.price || item.product?.price || 0
-    return sum + (price * item.quantity)
+    const price = item.variant_price || item.price || 0
+    return sum + (price * (item.quantity || 1))
   }, 0)
 
   return (
     <div className="cart-page">
-      <h1>Shopping Cart ({items.reduce((s, i) => s + i.quantity, 0)} items)</h1>
+      <h1>Shopping Cart ({items.reduce((s, i) => s + (i.quantity || 1), 0)} items)</h1>
 
       {items.map(item => {
-        const price = item.variant?.price || item.product?.price || 0
+        const price = item.variant_price || item.price || 0
+        const productId = item.product_id || item.productId
+        const variantId = item.variant_id || item.variantId
         return (
-          <div key={`${item.productId}-${item.variant?.id || ''}`} className="cart-item-mobile">
-            <Link to={`/product/${item.productId}`}>
-              <img src={item.product?.image} alt={item.product?.name} />
+          <div key={`${productId}-${variantId || ''}`} className="cart-item-mobile">
+            <Link to={`/product/${productId}`}>
+              <img src={item.image} alt={item.name} />
             </Link>
             <div className="cart-item-info">
-              <Link to={`/product/${item.productId}`}><h3>{item.product?.name}</h3></Link>
-              {item.variant && <div style={{fontSize:11,color:'#565959',marginBottom:2}}>{item.variant.name}</div>}
+              <Link to={`/product/${productId}`}><h3>{item.name}</h3></Link>
+              {item.variant_name && <div style={{fontSize:11,color:'#565959',marginBottom:2}}>{item.variant_name}</div>}
               <div className="stock">In Stock</div>
-              <div className="price">&#8377;{(price * item.quantity).toLocaleString()}</div>
+              <div className="price">&#8377;{(price * (item.quantity || 1)).toLocaleString()}</div>
               <div className="cart-item-qty">
                 <button onClick={() => {
-                  if (item.quantity === 1) removeFromCart(item.productId, item.variant?.id)
-                  else updateQuantity(item.productId, item.quantity - 1, item.variant?.id)
+                  if ((item.quantity || 1) === 1) removeFromCart(productId, variantId)
+                  else updateQuantity(productId, (item.quantity || 1) - 1, variantId)
                 }}>-</button>
-                <span>Qty: {item.quantity}</span>
-                <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variant?.id)}>+</button>
+                <span>Qty: {item.quantity || 1}</span>
+                <button onClick={() => updateQuantity(productId, (item.quantity || 1) + 1, variantId)}>+</button>
               </div>
               <div className="cart-item-actions">
-                <button onClick={() => removeFromCart(item.productId, item.variant?.id)}>Delete</button>
+                <button onClick={() => removeFromCart(productId, variantId)}>Delete</button>
                 <button>Save for later</button>
               </div>
             </div>

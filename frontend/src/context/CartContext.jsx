@@ -29,12 +29,17 @@ export const CartProvider = ({ children }) => {
   }
 
   const addToCart = async (productId, quantity = 1, variantId = null) => {
-    if (!token) return showToast('Please login to add items to cart')
+    if (!token) {
+      showToast('Please login to add items to cart')
+      return
+    }
     try {
+      console.log('Adding to cart:', { productId, quantity, variantId })
       await axios.post('/api/cart/add', { productId, quantity, variantId })
       await fetchCart()
       showToast('Added to cart!')
     } catch (err) {
+      console.error('Add to cart error:', err)
       showToast('Failed to add to cart')
     }
   }
@@ -65,7 +70,7 @@ export const CartProvider = ({ children }) => {
   }
 
   const cartTotal = items.reduce((sum, item) => {
-    const price = item.variant?.price || item.product?.price || 0
+    const price = item.variant_price || item.price || 0
     return sum + (price * (item.quantity || 1))
   }, 0)
   const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0)
