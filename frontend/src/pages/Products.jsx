@@ -79,7 +79,9 @@ const Products = () => {
 }
 
 const ProductCard = ({ product, addToCart }) => {
-  const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const discount = product.originalPrice > 0 
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
+    : 0
 
   const handleAddToCart = (e) => {
     e.preventDefault()

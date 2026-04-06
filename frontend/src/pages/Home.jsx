@@ -65,7 +65,9 @@ const Home = () => {
 }
 
 const ProductCard = ({ product }) => {
-  const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const discount = product.originalPrice > 0 
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
+    : 0
 
   return (
     <Link to={`/product/${product.id}`} className="product-card">

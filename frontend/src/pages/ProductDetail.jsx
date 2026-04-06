@@ -43,7 +43,9 @@ const ProductDetail = () => {
   if (!product) return <div style={{ padding: '40px', textAlign: 'center' }}>Product not found</div>
 
   const displayPrice = selectedVariant ? selectedVariant.price : product.price
-  const discount = Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100)
+  const discount = product.originalPrice > 0 
+    ? Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100) 
+    : 0
   const hasVariants = product.variants && product.variants.length > 0
 
   return (
