@@ -12,8 +12,8 @@ const Cart = () => {
 
   useEffect(() => {
     if (isGuest && items.length > 0) {
-      const productIds = [...new Set(items.map(i => i.productId))]
-      Promise.all(productIds.map(id => axios.get(`/api/products/${id}`).then(r => ({ id, data: r.data }))))
+      const productIds = [...new Set(items.map(i => parseInt(i.productId)))]
+      Promise.all(productIds.map(id => axios.get(`/api/products/${id}`).then(r => ({ id: parseInt(id), data: r.data }))))
         .then(results => {
           const map = {}
           results.forEach(r => { map[r.id] = r.data })
@@ -37,27 +37,28 @@ const Cart = () => {
     <div className="cart-page">
       <h1>Shopping Cart ({items.reduce((s, i) => s + (i.quantity || 1), 0)} items)</h1>
       {items.map(item => {
-        const product = products[item.productId] || {}
+        const pid = parseInt(item.productId)
+        const product = products[pid] || {}
         const price = product.price || 0
         return (
-          <div key={item.tempId || `${item.productId}-${item.variantId}`} className="cart-item-mobile">
-            <Link to={`/product/${item.productId}`}>
+          <div key={item.tempId || `${pid}-${item.variantId || ''}`} className="cart-item-mobile">
+            <Link to={`/product/${pid}`}>
               <img src={product.image} alt={product.name} />
             </Link>
             <div className="cart-item-info">
-              <Link to={`/product/${item.productId}`}><h3>{product.name || 'Loading...'}</h3></Link>
+              <Link to={`/product/${pid}`}><h3>{product.name || 'Loading...'}</h3></Link>
               <div className="stock">In Stock</div>
               <div className="price">&#8377;{(price * (item.quantity || 1)).toLocaleString()}</div>
               <div className="cart-item-qty">
                 <button onClick={() => {
-                  if ((item.quantity || 1) === 1) removeFromCart(item.productId, item.variantId)
-                  else updateQuantity(item.productId, (item.quantity || 1) - 1, item.variantId)
+                  if ((item.quantity || 1) === 1) removeFromCart(pid, item.variantId)
+                  else updateQuantity(pid, (item.quantity || 1) - 1, item.variantId)
                 }}>-</button>
                 <span>Qty: {item.quantity || 1}</span>
-                <button onClick={() => updateQuantity(item.productId, (item.quantity || 1) + 1, item.variantId)}>+</button>
+                <button onClick={() => updateQuantity(pid, (item.quantity || 1) + 1, item.variantId)}>+</button>
               </div>
               <div className="cart-item-actions">
-                <button onClick={() => removeFromCart(item.productId, item.variantId)}>Delete</button>
+                <button onClick={() => removeFromCart(pid, item.variantId)}>Delete</button>
               </div>
             </div>
           </div>
@@ -111,7 +112,7 @@ const Cart = () => {
       })}
 
       <div className="cart-summary-mobile">
-        <div className="subtotal">Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} items): &#8377;{subtotal.toLocaleString()}</div>
+        <div className="subtotal">Subtotal ({items.reduce((s, i) => s + (i.quantity || 1), 0)} items): &#8377;{subtotal.toLocaleString()}</div>
         <button className="btn-proceed" onClick={() => navigate('/checkout')}>Proceed to Buy</button>
       </div>
     </div>

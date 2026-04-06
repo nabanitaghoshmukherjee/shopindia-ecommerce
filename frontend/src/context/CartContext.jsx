@@ -52,17 +52,22 @@ export const CartProvider = ({ children }) => {
   const addToCart = async (productId, quantity = 1, variantId = null) => {
     try {
       if (isGuest) {
-        const newItem = { productId, quantity, variantId, tempId: Date.now() }
+        const pid = parseInt(productId)
+        const vid = variantId ? variantId.toString() : null
         setItems(prev => {
-          const existing = prev.find(i => i.productId === productId && i.variantId === variantId)
+          const existingIndex = prev.findIndex(i => 
+            parseInt(i.productId) === pid && 
+            (i.variantId ? i.variantId.toString() : null) === vid
+          )
           let updated
-          if (existing) {
-            updated = prev.map(i => i.productId === productId && i.variantId === variantId
-              ? { ...i, quantity: i.quantity + quantity }
-              : i
+          if (existingIndex >= 0) {
+            updated = prev.map((item, idx) => 
+              idx === existingIndex 
+                ? { ...item, quantity: (item.quantity || 1) + quantity }
+                : item
             )
           } else {
-            updated = [...prev, newItem]
+            updated = [...prev, { productId: pid, quantity, variantId: vid, tempId: Date.now() }]
           }
           saveLocalCart(updated)
           return updated
@@ -82,10 +87,13 @@ export const CartProvider = ({ children }) => {
   const updateQuantity = async (productId, quantity, variantId = null) => {
     try {
       if (isGuest) {
+        const pid = parseInt(productId)
+        const vid = variantId ? variantId.toString() : null
         setItems(prev => {
-          const updated = prev.map(i => i.productId === productId && i.variantId === variantId
-            ? { ...i, quantity }
-            : i
+          const updated = prev.map(i => 
+            parseInt(i.productId) === pid && (i.variantId ? i.variantId.toString() : null) === vid
+              ? { ...i, quantity }
+              : i
           ).filter(i => i.quantity > 0)
           saveLocalCart(updated)
           return updated
@@ -102,8 +110,12 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = async (productId, variantId = null) => {
     try {
       if (isGuest) {
+        const pid = parseInt(productId)
+        const vid = variantId ? variantId.toString() : null
         setItems(prev => {
-          const updated = prev.filter(i => !(i.productId === productId && i.variantId === variantId))
+          const updated = prev.filter(i => 
+            !(parseInt(i.productId) === pid && (i.variantId ? i.variantId.toString() : null) === vid)
+          )
           saveLocalCart(updated)
           return updated
         })
