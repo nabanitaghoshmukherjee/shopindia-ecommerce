@@ -6,230 +6,103 @@ import axios from 'axios'
 
 const Checkout = () => {
   const { items, cartTotal } = useCart()
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [razorpayKey, setRazorpayKey] = useState('')
-  const [isDemoMode, setIsDemoMode] = useState(true)
-  const [address, setAddress] = useState({
-    name: '',
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    pincode: ''
-  })
+  const [step, setStep] = useState(1)
+  const [address, setAddress] = useState({ name: user?.name || '', phone: '', street: '', city: '', state: '', pincode: '' })
 
   useEffect(() => {
-    if (!token || items.length === 0) {
-      navigate('/cart')
-    }
-    fetchConfig()
+    if (!token || items.length === 0) navigate('/cart')
   }, [token, items, navigate])
 
-  const fetchConfig = async () => {
-    try {
-      const res = await axios.get('/api/config')
-      setRazorpayKey(res.data.keyId)
-      setIsDemoMode(res.data.keyId === 'rzp_test_XXXXXXXXXX')
-    } catch (err) {
-      console.error(err)
-    }
-  }
+  const handleInput = (e) => setAddress({ ...address, [e.target.name]: e.target.value })
 
-  const handleInputChange = (e) => {
-    setAddress({ ...address, [e.target.name]: e.target.value })
-  }
-
-  const handleDemoPayment = async () => {
+  const handlePlaceOrder = async () => {
     setLoading(true)
     try {
       await axios.post('/api/payments/create-order', { amount: cartTotal })
       const verifyRes = await axios.post('/api/payments/verify', {})
-      
       if (verifyRes.data.success) {
-        const newOrder = await axios.post('/api/orders', {
-          items,
-          address,
-          paymentId: verifyRes.data.paymentId
-        })
+        const newOrder = await axios.post('/api/orders', { items, address, paymentId: verifyRes.data.paymentId })
         navigate(`/order-success/${newOrder.data.id}`)
       }
-    } catch (err) {
-      console.error(err)
-      alert('Payment failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { alert('Payment failed. Please try again.') }
+    finally { setLoading(false) }
   }
 
-  const loadRazorpay = () => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true)
-        return
-      }
-      const script = document.createElement('script')
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-      script.onload = () => resolve(true)
-      script.onerror = () => resolve(false)
-      document.body.appendChild(script)
-    })
-  }
-
-  const handleRazorpayPayment = async () => {
-    setLoading(true)
-
-    try {
-      const razorpayLoaded = await loadRazorpay()
-      if (!razorpayLoaded) {
-        alert('Failed to load Razorpay. Please try again.')
-        setLoading(false)
-        return
-      }
-
-      const orderRes = await axios.post('/api/payments/create-order', { amount: cartTotal })
-      const razorpayOrder = orderRes.data
-
-      const options = {
-        key: razorpayKey,
-        amount: razorpayOrder.amount,
-        currency: 'INR',
-        name: 'ShopIndia',
-        description: 'Order Payment',
-        order_id: razorpayOrder.id,
-        handler: async (response) => {
-          try {
-            const verifyRes = await axios.post('/api/payments/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            })
-
-            if (verifyRes.data.success) {
-              const newOrder = await axios.post('/api/orders', {
-                items,
-                address,
-                paymentId: response.razorpay_payment_id
-              })
-              navigate(`/order-success/${newOrder.data.id}`)
-            }
-          } catch (err) {
-            alert('Payment verification failed')
-          }
-        },
-        theme: {
-          color: '#FF9900'
-        }
-      }
-
-      const rzp = new window.Razorpay(options)
-      rzp.on('payment.failed', (response) => {
-        alert('Payment failed: ' + response.error.description)
-        setLoading(false)
-      })
-      rzp.open()
-    } catch (err) {
-      console.error(err)
-      alert('Payment failed. Please try again.')
-      setLoading(false)
-    }
-  }
-
-  const handlePayment = () => {
-    if (!address.name || !address.phone || !address.street || !address.city || !address.state || !address.pincode) {
-      alert('Please fill in all address fields')
-      return
-    }
-
-    if (isDemoMode) {
-      handleDemoPayment()
-    } else {
-      handleRazorpayPayment()
-    }
-  }
-
-  if (!token || items.length === 0) {
-    return null
-  }
+  const subtotal = cartTotal
+  const shipping = subtotal >= 500 ? 0 : 50
+  const tax = Math.round(subtotal * 0.18)
+  const total = subtotal + shipping + tax
 
   return (
     <div className="checkout-page">
       <h1>Checkout</h1>
 
-      {isDemoMode && (
-        <div style={{ background: '#FFF3CD', padding: '15px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
-          <strong>Demo Mode:</strong> Click "Pay Now" to simulate payment without real Razorpay
+      <div className="checkout-steps-mobile">
+        <div className={`checkout-step-mobile ${step >= 1 ? 'active' : ''}`}>1. Address</div>
+        <div className={`checkout-step-mobile ${step >= 2 ? 'active' : ''}`}>2. Payment</div>
+        <div className={`checkout-step-mobile ${step >= 3 ? 'active' : ''}`}>3. Review</div>
+      </div>
+
+      {step === 1 && (
+        <div className="checkout-section-mobile">
+          <h2>Shipping Address</h2>
+          <div className="form-group"><label>Full Name</label><input name="name" value={address.name} onChange={handleInput} required /></div>
+          <div className="form-group"><label>Phone</label><input name="phone" value={address.phone} onChange={handleInput} placeholder="10-digit mobile" required /></div>
+          <div className="form-group"><label>Address</label><input name="street" value={address.street} onChange={handleInput} placeholder="House no., Street" required /></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            <div className="form-group"><label>City</label><input name="city" value={address.city} onChange={handleInput} required /></div>
+            <div className="form-group"><label>State</label><input name="state" value={address.state} onChange={handleInput} required /></div>
+          </div>
+          <div className="form-group"><label>Pincode</label><input name="pincode" value={address.pincode} onChange={handleInput} placeholder="6-digit" required /></div>
+          <button className="btn-place-order" onClick={() => setStep(2)}>Continue</button>
         </div>
       )}
 
-      <div className="checkout-content">
-        <div className="checkout-form">
-          <h2>Delivery Address</h2>
-          <div className="form-group">
-            <label>Full Name</label>
-            <input type="text" name="name" value={address.name} onChange={handleInputChange} placeholder="Enter your full name" />
-          </div>
-          <div className="form-group">
-            <label>Phone Number</label>
-            <input type="tel" name="phone" value={address.phone} onChange={handleInputChange} placeholder="10-digit mobile number" />
-          </div>
-          <div className="form-group">
-            <label>Street Address</label>
-            <textarea name="street" value={address.street} onChange={handleInputChange} placeholder="Flat, House no., Building, Street" />
-          </div>
-          <div className="form-group">
-            <label>City</label>
-            <input type="text" name="city" value={address.city} onChange={handleInputChange} placeholder="City" />
-          </div>
-          <div className="form-group">
-            <label>State</label>
-            <input type="text" name="state" value={address.state} onChange={handleInputChange} placeholder="State" />
-          </div>
-          <div className="form-group">
-            <label>PIN Code</label>
-            <input type="text" name="pincode" value={address.pincode} onChange={handleInputChange} placeholder="6-digit PIN code" />
+      {step === 2 && (
+        <div className="checkout-section-mobile">
+          <h2>Payment Method</h2>
+          <div className="payment-option"><input type="radio" name="pay" defaultChecked /><div><div className="po-title">Cash on Delivery</div><div className="po-desc">Pay when you receive</div></div></div>
+          <div className="payment-option"><input type="radio" name="pay" /><div><div className="po-title">Credit / Debit Card</div><div className="po-desc">Visa, Mastercard, RuPay</div></div></div>
+          <div className="payment-option"><input type="radio" name="pay" /><div><div className="po-title">UPI</div><div className="po-desc">Google Pay, PhonePe, Paytm</div></div></div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-place-order" style={{background:'#f0f2f2',borderColor:'#d5d9d9'}} onClick={() => setStep(1)}>Back</button>
+            <button className="btn-place-order" onClick={() => setStep(3)}>Continue</button>
           </div>
         </div>
+      )}
 
-        <div className="order-summary">
-          <h2>Order Summary</h2>
-          
-          {items.map((item) => (
-            <div key={item.productId} className="order-item">
-              <img src={item.product.image} alt={item.product.name} />
-              <div className="order-item-info">
-                <h4>{item.product.name}</h4>
-                <p>Qty: {item.quantity}</p>
-                <p>₹{(item.product.price * item.quantity).toLocaleString()}</p>
-              </div>
-            </div>
-          ))}
-
-          <div className="order-summary-totals">
-            <div>
-              <span>Subtotal</span>
-              <span>₹{cartTotal.toLocaleString()}</span>
-            </div>
-            <div>
-              <span>Delivery</span>
-              <span>Free</span>
-            </div>
-            <div>
-              <span>Tax</span>
-              <span>₹0</span>
-            </div>
-            <div className="total">
-              <span>Total</span>
-              <span>₹{cartTotal.toLocaleString()}</span>
+      {step === 3 && (
+        <>
+          <div className="checkout-section-mobile">
+            <h2>Order Summary</h2>
+            {items.map(item => {
+              const price = item.variant?.price || item.product?.price || 0
+              return (
+                <div key={item.productId} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid #f0f0f0'}}>
+                  <img src={item.product?.image} alt="" style={{width:50,height:50,objectFit:'contain'}} />
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12}}>{item.product?.name}</div>
+                    <div style={{fontSize:11,color:'#565959'}}>Qty: {item.quantity}</div>
+                  </div>
+                  <div style={{fontWeight:700,fontSize:13}}>&#8377;{(price * item.quantity).toLocaleString()}</div>
+                </div>
+              )
+            })}
+            <div style={{marginTop:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0'}}><span>Items:</span><span>&#8377;{subtotal.toLocaleString()}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0'}}><span>Delivery:</span><span style={{color:'#067d62'}}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0'}}><span>Tax (GST):</span><span>&#8377;{tax.toLocaleString()}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:16,fontWeight:700,padding:'8px 0',borderTop:'2px solid #0f1111',marginTop:4}}><span>Total:</span><span>&#8377;{total.toLocaleString()}</span></div>
             </div>
           </div>
-
-          <button className="place-order-btn" onClick={handlePayment} disabled={loading}>
-            {loading ? 'Processing...' : `Pay ₹${cartTotal.toLocaleString()} ${isDemoMode ? '(Demo)' : 'with Razorpay'}`}
+          <button className="btn-place-order" onClick={handlePlaceOrder} disabled={loading}>
+            {loading ? 'Processing...' : `Place Order - ₹${total.toLocaleString()}`}
           </button>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }

@@ -38,6 +38,8 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'postgres'
 });
 
+const adminRoutes = require('./routes/admin/index');
+
 const upload = multer({ 
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
@@ -667,6 +669,9 @@ app.get('/api/config', (req, res) => {
   res.json({ keyId: RAZORPAY_KEY_ID });
 });
 
+// Admin Panel API Routes
+app.use('/api/admin', adminRoutes);
+
 app.get('*', (req, res) => {
   const indexPath = path.join(DIST_PATH, 'index.html');
   if (fs.existsSync(indexPath)) {
@@ -688,3 +693,4 @@ pool.query('SELECT NOW()').then(() => {
     console.log(`Server running on http://${HOST}:${PORT} (NO DATABASE)`);
   });
 });
+

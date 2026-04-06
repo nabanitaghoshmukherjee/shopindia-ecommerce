@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext'
 
 const Products = () => {
   const { category } = useParams()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('')
@@ -19,96 +19,86 @@ const Products = () => {
         if (category) params.append('category', category)
         if (searchParams.get('search')) params.append('search', searchParams.get('search'))
         if (sort) params.append('sort', sort)
-
         const res = await axios.get(`/api/products?${params}`)
         setProducts(res.data)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+      } catch (err) { console.error(err) }
+      finally { setLoading(false) }
     }
     fetchProducts()
   }, [category, searchParams, sort])
 
-  const categoryTitle = category 
-    ? category.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-    : 'All Products'
+  const title = searchParams.get('search')
+    ? `Results for "${searchParams.get('search')}"`
+    : category ? category.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'All Products'
 
   return (
     <div className="products-page">
-      <div className="page-header">
-        <div className="breadcrumb">
-          <Link to="/">Home</Link> &gt; <span>{categoryTitle}</span>
-        </div>
-        <h1>{categoryTitle} ({products.length} products)</h1>
+      <div className="page-header-mobile">
+        <div className="breadcrumb"><Link to="/">Home</Link> &gt; <span>{title}</span></div>
+        <h1>{title}</h1>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-        <select 
-          value={sort} 
-          onChange={(e) => setSort(e.target.value)}
-          style={{ padding: '10px', borderRadius: '8px', border: '1px solid #DDD' }}
-        >
-          <option value="">Sort by</option>
-          <option value="price-asc">Price: Low to High</option>
-          <option value="price-desc">Price: High to Low</option>
-          <option value="rating">Highest Rated</option>
-        </select>
+      {/* Filter Bar */}
+      <div className="products-filter-bar">
+        <button className={`filter-chip ${sort === 'price-asc' ? 'active' : ''}`} onClick={() => setSort(sort === 'price-asc' ? '' : 'price-asc')}>
+          &#8377; Low to High
+        </button>
+        <button className={`filter-chip ${sort === 'price-desc' ? 'active' : ''}`} onClick={() => setSort(sort === 'price-desc' ? '' : 'price-desc')}>
+          &#8377; High to Low
+        </button>
+        <button className={`filter-chip ${sort === 'rating' ? 'active' : ''}`} onClick={() => setSort(sort === 'rating' ? '' : 'rating')}>
+          &#9733; Rating
+        </button>
+        <button className={`filter-chip ${sort === 'id' ? 'active' : ''}`} onClick={() => setSort(sort === 'id' ? '' : 'id')}>
+          Newest
+        </button>
       </div>
+
+      <div className="products-result-info">{products.length} results</div>
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
+        <div style={{padding:'40px',textAlign:'center'}}>Loading...</div>
       ) : products.length === 0 ? (
         <div className="empty-state">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-          </svg>
-          <h2>No products found</h2>
+          <h2>No results found</h2>
           <p>Try adjusting your search or filters</p>
         </div>
       ) : (
-        <div className="products-grid">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} addToCart={addToCart} />
-          ))}
+        <div className="product-grid">
+          {products.map(product => {
+            const disc = product.originalPrice > product.price
+              ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0
+            const rating = product.rating || 4
+            const reviews = product.reviews || 0
+            return (
+              <div key={product.id} className="product-grid-card">
+                <Link to={`/product/${product.id}`}>
+                  <div className="product-grid-card-img-wrap"><img src={product.image} alt={product.name} /></div>
+                  <div className="product-grid-card-body">
+                    <h3>{product.name}</h3>
+                    <div className="rating">
+                      <span className="rating-badge">{rating} &#9733;</span>
+                      <span className="rating-count">({reviews.toLocaleString()})</span>
+                    </div>
+                    <div>
+                      <span className="price"><sup>&#8377;</sup>{product.price?.toLocaleString()}</span>
+                      {disc > 0 && (
+                        <>
+                          <span className="original">&#8377;{product.originalPrice?.toLocaleString()}</span>
+                          <span className="discount">({disc}%)</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="delivery"><b>FREE Delivery</b></div>
+                    {product.badge && <span className="prime-tag">{product.badge}</span>}
+                  </div>
+                </Link>
+                <button className="add-cart-btn" onClick={() => addToCart(product.id)}>Add to Cart</button>
+              </div>
+            )
+          })}
         </div>
       )}
-    </div>
-  )
-}
-
-const ProductCard = ({ product, addToCart }) => {
-  const discount = product.originalPrice > 0 
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
-    : 0
-
-  const handleAddToCart = (e) => {
-    e.preventDefault()
-    addToCart(product.id)
-  }
-
-  return (
-    <div className="product-card">
-      {product.badge && <span className="badge">{product.badge}</span>}
-      <Link to={`/product/${product.id}`}>
-        <img src={product.image} alt={product.name} className="image" />
-      </Link>
-      <Link to={`/product/${product.id}`}>
-        <h3>{product.name}</h3>
-      </Link>
-      <div className="rating">
-        <span className="stars">{'★'.repeat(Math.floor(product.rating))}</span>
-        <span className="reviews">{product.reviews.toLocaleString()}</span>
-      </div>
-      <div className="price">
-        <span className="current">₹{product.price.toLocaleString()}</span>
-        <span className="original">₹{product.originalPrice.toLocaleString()}</span>
-        <span className="discount">{discount}% off</span>
-      </div>
-      <button className="btn btn-primary" onClick={handleAddToCart} style={{ width: '100%', marginTop: '10px' }}>
-        Add to Cart
-      </button>
     </div>
   )
 }
